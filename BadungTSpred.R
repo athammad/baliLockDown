@@ -114,7 +114,7 @@ set.seed(1989)
 xgb_modelCV<-train(TrainDataTS[,predictors], TrainDataTS[,target],  
                    trControl = train_control,
                    tuneLength = 100,
-                   method = '')
+                   method = 'xgbTree')
 
 
 PredsCV = predict(xgb_modelCV,testDataTS[,predictors])
