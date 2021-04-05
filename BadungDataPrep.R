@@ -40,7 +40,7 @@ setnames(veg_outcomes,c('Date','EVI','NDVI','ET','Rain','Temp','Wind','Hum'))
 lapply(veg_outcomes, class)
 
 
-#fucking wind is available from 1979 to three months from real-time
+#wind is available from 1979 to three months from real-time
 veg_outcomes<-veg_outcomes[!is.na(Wind)]
 veg_outcomes[veg_outcomes==0.000000000]<-NA
 #veg_outcomes[Date%between%c('2020-04-02','2020-06-07'),treat:=1]
