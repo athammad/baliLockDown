@@ -57,6 +57,9 @@ vegCF<-rbind(testDataTS,vegCF)
 fwrite(vegCF,paste0(District,'CF.csv'))
 
 })
+
+
+
 #####################################################
 
 allDistrics<-c('Abiansemal','Petang','Megwi','Kuta','KutaS','KutaU')
@@ -100,11 +103,11 @@ AllCF[,Devi:=EVI-xgb]
 
 
 #overall model on all badung
-summ(ateCF<-lm(Devi~as.factor(treat),data =AllCF,weights = weig),digits = 4,confint = T)
+summ(ateCF<-lm(Devi~as.factor(treat),data =AllCF,weights = weig),digits = 4,confint = T,robust = T)
 #model on the North
-summ(ateCFNord<-lm(Devi~as.factor(treat),data =AllCF[area==0],weights = weig),digits = 4,confint = T)
+summ(ateCFNord<-lm(Devi~as.factor(treat),data =AllCF[area==0],weights = weig),digits = 4,confint = T,robust = T)
 #Model on the South
-summ(ateCFSud<-lm(Devi~as.factor(treat),data =AllCF[area==1],weights =weig),digits = 4,confint = T)
+summ(ateCFSud<-lm(Devi~as.factor(treat),data =AllCF[area==1],weights =weig),digits = 4,confint = T,robust = T)
 
 
 #PLACEBO TEST
@@ -114,5 +117,56 @@ AllCF[Date%between%c('2019-04-02','2019-07-09'),treat2:=1]
 AllCF[is.na(treat2),treat2:=0]
 allCFJ<-AllCF[treat==0]
 
-summ(placebo<-lm(Devi~as.factor(treat2),weights =weig,data=allCFJ),digits = 4,confint = T)
+summ(placebo<-lm(Devi~as.factor(treat2),weights =weig,data=allCFJ),digits = 4,confint = T,robust = T)
+
+
+
+#check for week month yday dummy vars
+AllCF$Week<-week(AllCF$Date)
+AllCF$Month<-month(AllCF$Date)
+AllCF$doy<-yday(AllCF$Date)
+
+
+summ(ateCFWeek<-lm(Devi~as.factor(treat)+
+                  as.factor(Week),
+                  data =AllCF,weights = weig),digits = 4,confint = T,robust = T)
+
+summ(ateCFMonth<-lm(Devi~as.factor(treat)+
+                  as.factor(Month),
+                  data =AllCF,weights = weig),digits = 4,confint = T,robust = T)
+
+summ(ateCFDoy<-lm(Devi~as.factor(treat)+
+                  as.factor(doy),
+                  data =AllCF,weights = weig),digits = 4,confint = T,robust = T)
+
+library(MLmetrics)
+testResPer<-lapply(split(setDF(AllCF[treat==0,]),AllCF[treat==0,district]),function(x){
+
+c(round(caret::R2(x$xgb,x$EVI),4),
+round(MLmetrics::RMSPE(x$xgb,x$EVI),4), 
+round(MLmetrics::MAPE(x$xgb,x$EVI),4))
+
+
+})
+
+testResPer<-as.data.table(do.call("rbind",testResPer))
+round(colMeans(testResPer),4)
+
+
+trainRes<-lapply(allDistrics,function(x){
+ 
+
+setwd(paste0("folder",x))
+load(paste0('XGBfinal',x,gsub('-','',Sys.Date()),'.Rdata'))
+
+prova<-predict.train(xgb_modelCV)
+res2<-c(round(caret::R2(prova,TrainDataTS[,target]),4),
+round(MLmetrics::RMSPE(prova,TrainDataTS[,target]),4), 
+round(MLmetrics::MAPE(prova,TrainDataTS[,target]),4))
+
+})
+trainRes<-as.data.table(do.call("rbind",trainRes))
+round(colMeans(trainRes),4)
+
+
 
